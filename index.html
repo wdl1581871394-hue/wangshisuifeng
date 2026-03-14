@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>往事变作草芥随风散 📅</title>
+    
+    <style>
+        @import url('https://cdn.staticfile.org/lxgw-wenkai-screen-webfont/1.6.0/lxgwwenkaiscreen.css');
+
+        :root {
+            --retro-green: #246B43; 
+            --retro-red: #B23A30;   
+            --paper-bg: #EAE1D0;    
+            --text-dark: #333333;
+            --note-bg: #FDF3AE; 
+        }
+
+        body {
+            font-family: 'LXGW WenKai Screen', 'PingFang SC', serif;
+            background-color: #2C2C2C; 
+            background-image: radial-gradient(#444 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 统一包裹容器：彻底锁死高度，杜绝任何伸缩！ */
+        .book-wrapper {
+            position: relative;
+            max-width: 960px;
+            width: 100%;
+            height: 720px; /* 绝对固定高度 */
+            perspective: 2500px; 
+            transform-style: preserve-3d;
+        }
+
+        /* 通用纸张样式，继承父级高度 */
+        .old-paper {
+            background-color: var(--paper-bg);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            border-radius: 4px;
+            padding: 25px;
+            border: 1px solid #C4B79E;
+            box-sizing: border-box;
+            height: 100%; /* 填满720px */
+        }
+        
+        /* 顶部撕纸边缘效果 */
+        .old-paper::before {
+            content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 15px;
+            background-image: radial-gradient(circle, transparent 4px, var(--paper-bg) 5px);
+            background-size: 15px 15px; background-position: -7px -7px;
+        }
+
+        /* =========================================
+           封面层：舒缓卷曲动画
+           ========================================= */
+        .cover-page {
+            position: absolute;
+            top: 0; left: 0; width: 100%;
+            z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center;
+            transform-origin: 0% 0%; 
+            background-color: var(--paper-bg);
+        }
+
+        .cover-content {
+            border: 2px dashed var(--retro-green);
+            padding: 50px 40px; width: 80%; background-color: rgba(255,255,255,0.2);
+            pointer-events: none; 
+        }
+
+        .cover-title { font-size: 38px; color: var(--retro-green); font-weight: bold; margin-bottom: 25px; letter-spacing: 4px; }
+        .cover-subtitle { font-size: 18px; color: #555; margin-bottom: 20px; line-height: 2; }
+
+        /* 右下角折角按钮 */
+        .corner-btn {
+            position: absolute;
+            bottom: 0; right: 0;
+            background-color: var(--retro-red);
+            color: var(--paper-bg);
+            padding: 15px 30px;
+            font-size: 18px;
+            font-family: 'LXGW WenKai Screen', serif;
+            cursor: pointer;
+            border-radius: 40px 0 4px 0; 
+            box-shadow: -4px -4px 15px rgba(178, 58, 48, 0.3);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 200;
+        }
+        .corner-btn:hover {
+            padding: 25px 40px; 
+            background-color: #8c2a22;
+            box-shadow: -8px -8px 25px rgba(178, 58, 48, 0.4);
+        }
+
+        /* 完整的 2.5秒 舒缓翻页动画 */
+        .peel-off {
+            animation: softPeel 2.5s cubic-bezier(0.45, 0.05, 0.22, 1) forwards;
+            pointer-events: none;
+        }
+
+        @keyframes softPeel {
+            0% { transform: rotate3d(0, 0, 0, 0deg); border-bottom-right-radius: 4px; }
+            30% { border-bottom-right-radius: 500px; transform: rotate3d(-1, 1, 0, 20deg) translate(-2%, -2%); box-shadow: -20px 30px 50px rgba(0,0,0,0.5); }
+            100% { border-bottom-right-radius: 1200px; transform: rotate3d(-1, 1.2, 0, 110deg) translate(-15%, -15%) translateZ(300px); opacity: 0; box-shadow: none; }
+        }
+
+        /* =========================================
+           黄历主体层 (绝对焊死尺寸)
+           ========================================= */
+        .main-page { position: relative; z-index: 1; width: 100%; height: 100%; }
+
+        /* ✨ 核心浮现效果：初始透明，被加上 show 类后缓慢用2.5秒浮现 ✨ */
+        .inner-border { 
+            border: 3px solid var(--retro-green); padding: 20px; display: flex; gap: 30px; position: relative; height: 100%; box-sizing: border-box;
+            opacity: 0; 
+            transition: opacity 2.5s ease-in-out; 
+        }
+        .inner-border.show { opacity: 1; }
+
+        .inner-border::after { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; right: 3px; border: 1px solid var(--retro-green); pointer-events: none; }
+
+        .left-col { flex: 1; display: flex; flex-direction: column; border-right: 2px dashed rgba(36, 107, 67, 0.4); padding-right: 30px; }
+        .right-col { flex: 1.3; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+
+        /* 锁死所有文字框的高度，彻底杜绝呼吸伸缩 */
+        .butler-box { background-color: rgba(36, 107, 67, 0.08); border: 1px solid var(--retro-green); padding: 15px; border-radius: 4px; }
+        .butler-title { font-size: 16px; font-weight: bold; color: var(--retro-red); margin-bottom: 8px; }
+        .butler-content { font-size: 16px; line-height: 1.8; color: var(--text-dark); height: 90px; overflow: hidden; } 
+
+        .info-grid { display: flex; gap: 15px; margin-top: 15px; }
+        .info-card { flex: 1; border: 1px dashed var(--retro-green); padding: 12px; background-color: rgba(255,255,255,0.3); border-radius: 4px; position: relative; }
+        .info-card.interactive { cursor: pointer; transition: all 0.3s; }
+        .info-card.interactive:hover { background-color: rgba(255,255,255,0.6); box-shadow: 2px 2px 0 var(--retro-green); transform: translateY(-2px); }
+        .info-card-title { font-size: 15px; font-weight: bold; color: var(--retro-green); margin-bottom: 5px; border-bottom: 1px solid rgba(36, 107, 67, 0.2); padding-bottom: 5px; }
+        .info-content { font-size: 14px; line-height: 1.6; color: var(--text-dark); height: 75px; overflow: hidden; } 
+        .hint-text { font-size: 11px; color: var(--retro-red); float: right; margin-top: 2px; }
+
+        .sticky-board { display: flex; flex-wrap: wrap; gap: 15px; height: 130px; overflow: hidden; } 
+        .sticky-note { background-color: var(--note-bg); width: 130px; padding: 12px; box-shadow: 2px 4px 6px rgba(0,0,0,0.1); position: relative; transform: rotate(-2deg); transition: transform 0.3s; }
+        .sticky-note:nth-child(even) { transform: rotate(3deg); }
+        .sticky-note:hover { transform: scale(1.05) rotate(0deg); z-index: 10; }
+        .sticky-note::before { content: ''; position: absolute; top: -8px; left: 50%; transform: translateX(-50%) rotate(-2deg); width: 50px; height: 12px; background-color: rgba(255, 255, 255, 0.5); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .note-text { font-size: 14px; color: #555; line-height: 1.5; word-wrap: break-word; }
+        .note-date { font-size: 11px; color: #999; text-align: right; margin-top: 8px; border-top: 1px dotted #ccc; padding-top: 3px; }
+
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid var(--retro-green); padding-bottom: 10px; margin-bottom: 15px; font-weight: bold; color: var(--retro-green); }
+        .main-date-area { display: flex; justify-content: space-between; align-items: center; margin: 10px 0 20px 0; }
+        .couplet { width: 25px; font-size: 20px; line-height: 1.3; text-align: center; font-weight: bold; color: var(--retro-green); }
+        .big-number { font-family: 'Impact', sans-serif; font-size: 130px; line-height: 1; color: var(--retro-green); text-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
+        .weekend-red { color: var(--retro-red) !important; }
+
+        .almanac-grid { border: 2px solid var(--retro-green); display: grid; grid-template-columns: 45px 1fr; flex-grow: 1; }
+        .almanac-item { display: contents; cursor: pointer; }
+        .almanac-mark { display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; padding: 10px; border-bottom: 1px solid var(--retro-green); border-right: 1px solid var(--retro-green); }
+        .almanac-text { padding: 15px; font-size: 16px; line-height: 1.6; border-bottom: 1px solid var(--retro-green); display: flex; align-items: center; height: 75px; overflow: hidden; box-sizing: border-box; transition: background 0.3s; } 
+        .almanac-item:hover .almanac-text { background-color: rgba(36,107,67,0.05); }
+        .almanac-item:last-child > div { border-bottom: none; }
+        .mark-good { color: var(--retro-red); } .mark-bad { color: var(--text-dark); }
+
+        .btn-add-note { background-color: var(--note-bg); color: var(--text-dark); border: 1px dashed var(--retro-green); padding: 5px 12px; font-family: 'LXGW WenKai Screen', serif; cursor: pointer; transition: all 0.3s; box-shadow: 2px 2px 0 rgba(0,0,0,0.1); font-size: 14px;}
+        .btn-add-note:hover { background-color: #fceb86; transform: translateY(-2px); }
+
+        .history-box { border-top: 1px dotted var(--retro-green); padding-top: 10px; height: 40px; overflow: hidden; }
+
+        .pen-cursor { display: inline-block; color: var(--retro-red); animation: writeBlink 0.3s infinite alternate; }
+        @keyframes writeBlink { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-3px); opacity: 0.5; } }
+        
+        @media (max-width: 768px) { .book-wrapper { height: auto; } .inner-border { flex-direction: column; } .left-col { border-right: none; border-bottom: 2px dashed rgba(36,107,67,0.4); padding-bottom: 20px; padding-right: 0;} .info-grid { flex-direction: column; } }
+
+        /* 模态弹窗 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--note-bg); padding: 30px; border-radius: 2px; width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal-content textarea { width: 100%; height: 100px; background: transparent; border: none; border-bottom: 1px solid #ccc; font-family: 'LXGW WenKai Screen', serif; font-size: 16px; outline: none; resize: none; margin-bottom: 15px; }
+        .modal-btn { background: var(--retro-green); color: #fff; border: none; padding: 8px 15px; cursor: pointer; font-family: 'LXGW WenKai Screen', serif;}
+    </style>
+</head>
+<body>
+
+<!-- 音频播放器 -->
+<audio id="bgm" loop preload="auto">
+    <source src="https://assets.mixkit.co/music/preview/mixkit-relaxing-acoustic-guitar-139.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-flip" preload="auto">
+    <source src="https://www.soundjay.com/misc/sounds/page-flip-01a.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-pen" loop preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-fast-pencil-writing-on-paper-2126.mp3" type="audio/mpeg">
+</audio>
+
+<div class="book-wrapper">
+
+    <!-- ==========================================
+         封面层 (昨日日记)
+    =========================================== -->
+    <div class="cover-page old-paper" id="cover-page">
+        <div class="cover-content">
+            <div class="cover-title">往事变作草芥随风散</div>
+            <div class="cover-subtitle">
+                2026年3月14日，星期六。<br>
+                昨日的纷扰与疲惫，已被老旧的黄历吸收。<br>
+                客官，让往事随风，该翻篇啦。<br>
+            </div>
+        </div>
+        
+        <!-- 右下角呼应交互 -->
+        <div class="corner-btn" onclick="startJourney()">
+            ✒️ 舒缓翻开今日
+        </div>
+    </div>
+
+    <!-- ==========================================
+         主体层 (先呈现空白泛黄纸张，框线内容缓慢浮现)
+    =========================================== -->
+    <div class="main-page old-paper" id="main-container">
+        
+        <!-- 核心：这个盒子初始透明，翻开后才慢慢浮现 -->
+        <div class="inner-border" id="inner-content">
+            
+            <div class="left-col">
+                <div class="header">
+                    <span id="month-en">MARCH</span>
+                    <span style="border: 2px solid var(--retro-green); padding: 2px 8px; border-radius: 15px;">[2026]</span>
+                    <span id="month-zh">三月大</span>
+                </div>
+
+                <div class="main-date-area">
+                    <div class="couplet">烟火人间又一天</div>
+                    <div class="big-number weekend-red" id="big-day">14</div>
+                    <div class="couplet">岁月静好满心欢</div>
+                </div>
+
+                <div class="almanac-grid">
+                    <div class="almanac-item" onclick="toggleYi()">
+                        <div class="almanac-mark mark-good">宜</div>
+                        <div class="almanac-text" id="yi-text"></div>
+                    </div>
+                    <div class="almanac-item" onclick="toggleJi()">
+                        <div class="almanac-mark mark-bad">忌</div>
+                        <div class="almanac-text" id="ji-text"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-col">
+                <div class="butler-box">
+                    <div class="butler-title">📜 日历君的私语</div>
+                    <div class="butler-content" id="butler-message"></div>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-card-title">🌤️ 观天象</div>
+                        <div class="info-content" id="weather-content"></div>
+                    </div>
+
+                    <div class="info-card interactive" onclick="refreshHealthTip()">
+                        <span class="hint-text">✐ 点击换一条</span>
+                        <div class="info-card-title">💪 坊间叮嘱</div>
+                        <div class="info-content" id="health-content"></div>
+                    </div>
+                </div>
+
+                <div style="flex-grow: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: bold; color: var(--retro-green); border-bottom: 2px solid var(--retro-red);">客官的角落</span>
+                        <button class="btn-add-note" onclick="openModal()">+ 贴张情绪便签 ✎</button>
+                    </div>
+                    <div class="sticky-board" id="note-board"></div>
+                </div>
+
+                <div class="history-box">
+                    <span style="font-size: 13px; color: #888;">【今日史记】</span>
+                    <span id="history-content" style="font-size: 13px;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="note-modal">
+    <div class="modal-content">
+        <div style="text-align: center; margin-bottom: 10px; color: var(--retro-green); font-weight: bold;">记录当下的心情</div>
+        <textarea id="note-input" placeholder="今天过得怎么样？写下来，老伙计替你保管..."></textarea>
+        <div style="display: flex; justify-content: space-between;">
+            <button class="modal-btn" style="background: #ccc; color: #333;" onclick="closeModal()">取消</button>
+            <button class="modal-btn" onclick="saveNote()">贴上黄历</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 0. 完美时机的翻卷与浮现动画 ---
+    function startJourney() {
+        try {
+            const bgm = document.getElementById('bgm');
+            const sfxFlip = document.getElementById('sfx-flip');
+            if(bgm) { bgm.volume = 0.35; bgm.play().catch(e => {}); }
+            if(sfxFlip) sfxFlip.play().catch(e => {});
+        } catch (error) {}
+
+        const coverPage = document.getElementById('cover-page');
+        if (!coverPage) return;
+        
+        const btn = coverPage.querySelector('.corner-btn');
+        if (btn) btn.style.pointerEvents = 'none';
+
+        // 1. 触发封面卷曲飞走动画 (耗时 2.5s)
+        coverPage.classList.add('peel-off');
+
+        // 2. 当封面完全飞走后 (2.5s)
+        setTimeout(() => {
+            coverPage.style.display = 'none'; // 彻底隐藏封面
+            
+            // 让底层的复古框线与结构像墨迹一样缓缓显现 (CSS 设置了 2.5s 渐变)
+            document.getElementById('inner-content').classList.add('show');
+            
+            // 等待边框浮现了接近一半时 (1.5s 后)，钢笔"沙沙"声响起，文字开始被写下
+            setTimeout(() => {
+                beginWritingMagic();
+            }, 1500); 
+
+        }, 2500); 
+    }
+
+    // --- 1. 日期数据设定 ---
+    const todayYi = { short: "出行", long: "今天出门会有好运哦，连吹来的风都是温柔的。" };
+    const todayJi = { short: "内卷", long: "周末大好时光，偷偷摸个鱼才是正经事。" };
+    let isYiExpanded = false, isJiExpanded = false;
+
+    // --- 2. 亚美尼亚天气 ---
+    function generateWeatherTip() {
+        const weatherTexts =[
+            `日历君眺望着高加索的云，<b>亚美尼亚</b>的街头今日风和日丽。出门去广场上喂喂鸽子吧。`,
+            `身处<b>亚美尼亚</b>这片古老的大地，今天的阳光应该格外温柔。请带上属于周末的好心情！`,
+            `不管埃里温的街道今天温度如何，记得给自己买杯热茶。异国他乡，老伙计会一直陪着你。`
+        ];
+        return weatherTexts[Math.floor(Math.random() * weatherTexts.length)];
+    }
+
+    // --- 3. 写字音效控制器 ---
+    let activeWriters = 0; 
+    const sfxPen = document.getElementById('sfx-pen');
+    if(sfxPen) sfxPen.volume = 0.6;
+
+    async function penWriteHTML(elementId, htmlString, speed = 40) {
+        const token = Symbol(); writeTokens[elementId] = token;
+        
+        activeWriters++;
+        if (activeWriters === 1 && sfxPen) { sfxPen.play().catch(e=>{}); }
+
+        const el = document.getElementById(elementId); 
+        if(!el) return;
+        el.innerHTML = ''; let currentHTML = ''; let i = 0;
+        let cursor = el.parentNode.querySelector('.pen-cursor');
+        if(!cursor) { cursor = document.createElement('span'); cursor.className = 'pen-cursor'; cursor.innerHTML = '✒️'; el.parentNode.insertBefore(cursor, el.nextSibling); }
+        cursor.style.display = 'inline-block';
+
+        while (i < htmlString.length) {
+            if (writeTokens[elementId] !== token) break;
+            if (htmlString[i] === '<') {
+                let tag = ''; while (htmlString[i] !== '>' && i < htmlString.length) { tag += htmlString[i]; i++; } tag += '>'; currentHTML += tag;
+            } else {
+                currentHTML += htmlString[i]; i++; el.innerHTML = currentHTML;
+                await new Promise(r => setTimeout(r, speed + Math.random() * 20)); 
+            }
+        }
+        
+        if (writeTokens[elementId] === token) { cursor.style.display = 'none'; el.innerHTML = currentHTML; }
+        activeWriters--;
+        if (activeWriters === 0 && sfxPen) { sfxPen.pause(); }
+    }
+    let writeTokens = {};
+
+    // --- 4. 建议与私语 ---
+    const healthTips =[
+        "久坐不仅伤腰，还会让财气不通哦！赶紧站起来像猫咪一样伸个大懒腰！",
+        "知道你在亚美尼亚很忙，但喝水可是人生大事。快去倒杯温水吧！",
+        "夜里子时前入睡，养肝护发。梦里啥都有，千万别熬夜修仙了。"
+    ];
+    let currentTipIndex = Math.floor(Math.random() * healthTips.length);
+
+    function initDatabase() {
+        let notes = JSON.parse(localStorage.getItem('my_diary_notes'));
+        if (!notes) {
+            let pastDate = new Date(); pastDate.setDate(14 - 3); 
+            notes =[{ id: Date.now() - 100000, text: "今天在国外遇到点小挫折，感觉稍微有点委屈...", dateStr: "2026/3/11", timestamp: pastDate.getTime() }];
+            localStorage.setItem('my_diary_notes', JSON.stringify(notes));
+        }
+        return notes;
+    }
+
+    function generateButlerMessage(notes) {
+        const hour = new Date().getHours();
+        let greeting = hour < 12 ? "早安，客官。" : (hour < 18 ? "午安，客官。" : "夜深了，客官。");
+
+        const recentNote = notes.find(n => n.text.includes("委屈") || n.text.includes("累"));
+        if (recentNote) {
+            return `${greeting} 老伙计发现前几天您写下了『委屈』。在亚美尼亚还好吗？不管外面风霜如何，这里永远是你的避风港。`;
+        }
+        return `${greeting} 新的一天，纸笔已备好。伴着这吉他声，往事变作草芥随风散，今天想记点什么奇遇呢？`;
+    }
+
+    // --- 5. 交互方法 ---
+    function toggleYi() {
+        if (!isYiExpanded) { penWriteHTML('yi-text', `<b>${todayYi.short}：</b>${todayYi.long}`, 20); } 
+        else { penWriteHTML('yi-text', `<b>${todayYi.short}</b> <span style="font-size:12px;color:#888;">(点击)</span>`, 15); }
+        isYiExpanded = !isYiExpanded;
+    }
+    function toggleJi() {
+        if (!isJiExpanded) { penWriteHTML('ji-text', `<b>${todayJi.short}：</b>${todayJi.long}`, 20); } 
+        else { penWriteHTML('ji-text', `<b>${todayJi.short}</b> <span style="font-size:12px;color:#888;">(点击)</span>`, 15); }
+        isJiExpanded = !isJiExpanded;
+    }
+    async function refreshHealthTip() {
+        const el = document.getElementById('health-content');
+        el.style.transition = 'opacity 0.3s'; el.style.opacity = '0';
+        await new Promise(r => setTimeout(r, 300));
+        el.style.opacity = '1';
+        currentTipIndex = (currentTipIndex + 1) % healthTips.length;
+        penWriteHTML('health-content', healthTips[currentTipIndex], 20);
+    }
+
+    function renderNotes() {
+        const notes = JSON.parse(localStorage.getItem('my_diary_notes')) ||[];
+        const board = document.getElementById('note-board'); board.innerHTML = "";
+        const displayNotes = notes.sort((a,b) => b.timestamp - a.timestamp).slice(0, 3);
+        displayNotes.forEach(note => {
+            const div = document.createElement('div'); div.className = 'sticky-note';
+            div.innerHTML = `<div class="note-text">${note.text}</div><div class="note-date">${note.dateStr}</div>`;
+            board.appendChild(div);
+        });
+    }
+    function openModal() { document.getElementById('note-modal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('note-modal').style.display = 'none'; document.getElementById('note-input').value = ""; }
+    async function saveNote() {
+        const text = document.getElementById('note-input').value.trim(); if (!text) return;
+        let notes = JSON.parse(localStorage.getItem('my_diary_notes')) ||[];
+        notes.push({ id: Date.now(), text: text, dateStr: "2026/3/14", timestamp: Date.now() });
+        localStorage.setItem('my_diary_notes', JSON.stringify(notes));
+        closeModal(); renderNotes();
+        await penWriteHTML('butler-message', "✒️ 妥了！往事随风散，客官的心事，老伙计已牢牢记下。异乡的夜晚也要睡个好觉哦！", 25);
+    }
+
+    // --- 6. 正式开始落笔 ---
+    function beginWritingMagic() {
+        penWriteHTML('yi-text', `<b>${todayYi.short}</b> <span style="font-size:12px;color:#888;">(点击展开)</span>`, 30);
+        penWriteHTML('ji-text', `<b>${todayJi.short}</b> <span style="font-size:12px;color:#888;">(点击展开)</span>`, 30);
+        document.getElementById('history-content').innerHTML = `1879年今日，老顽童<b>爱因斯坦</b>降生。且逢<b>圆周率日(Pi Day)</b>，吃个Pie庆祝吧！`;
+
+        const notes = initDatabase();
+        renderNotes();
+        
+        penWriteHTML('butler-message', generateButlerMessage(notes), 35);
+        penWriteHTML('weather-content', generateWeatherTip(), 30);
+        penWriteHTML('health-content', healthTips[currentTipIndex], 25);
+    }
+</script>
+
+</body>
+</html>
